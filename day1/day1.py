@@ -12,10 +12,9 @@ def get_total_freq():
 
 def find_repeated_freq():
     total_freq = 0
-    found_freqs = [0]
+    found_freqs = set()
     duplicate_freq = None
     freqs = read_freqs()
-    # freqs = [-6, +3, +8, +5, -6]
     while duplicate_freq is None:
         for freq in freqs:
             total_freq += int(freq)
@@ -24,8 +23,7 @@ def find_repeated_freq():
                 print('FOUND IT')
                 break
             else:
-                found_freqs.append(total_freq)
-        #print(found_freqs)
+                found_freqs.add(total_freq)
     return duplicate_freq
 
 
