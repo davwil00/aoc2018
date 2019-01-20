@@ -1,9 +1,7 @@
 from collections import namedtuple
-from itertools import chain
 
 GRID_SERIAL_NUMBER = 8444
 MAX_SQUARE_SIZE = 300
-# GRID_SERIAL_NUMBER = 42
 
 Coordinate = namedtuple("Coordinate", ["x", "y"])
 
@@ -29,36 +27,76 @@ def create_square(top_left, square_size):
     return grid
 
 
-def calculate_grid_sum(grid):
-    return sum(chain.from_iterable(grid))
+# Function to preprcess input mat[M][N].
+# This function mainly fills aux[M][N]
+# such that aux[i][j] stores sum
+# of elements from (0,0) to (i,j)
+# from https://www.geeksforgeeks.org/submatrix-sum-queries/
+def pre_process(mat, aux):
+    grid_size = len(mat)
+    # Copy first row of mat[][] to aux[][]
+    for i in range(0, grid_size, 1):
+        aux[0][i] = mat[0][i]
+
+        # Do column wise sum
+    for i in range(1, grid_size, 1):
+        for j in range(0, grid_size, 1):
+            aux[i][j] = mat[i][j] + aux[i - 1][j]
+
+            # Do row wise sum
+    for i in range(0, grid_size, 1):
+        for j in range(1, grid_size, 1):
+            aux[i][j] += aux[i][j - 1]
+
+
+# between (tli, tlj) and (rbi, rbj) using aux[][]
+# which is built by the preprocess function
+# adapted from https://www.geeksforgeeks.org/submatrix-sum-queries/
+def sum_query(aux, top_left: Coordinate, bottom_right: Coordinate):
+    # result is now sum of elements
+    # between (0, 0) and (rbi, rbj)
+    res = aux[bottom_right.y - 1][bottom_right.x - 1]
+
+    # Remove elements between (0, 0)
+    # and (tli-1, rbj)
+    if top_left.y > 1:
+        res = res - aux[top_left.y - 2][bottom_right.x - 1]
+
+    # Remove elements between (0, 0)
+    # and (rbi, tlj-1)
+    if top_left.x > 1:
+        res = res - aux[bottom_right.y - 1][top_left.x - 2]
+
+    # Add aux[tli-1][tlj-1] as elements
+    # between (0, 0) and (tli-1, tlj-1)
+    # are subtracted twice
+    if top_left.y > 1 and top_left.x > 1:
+        res = res + aux[top_left.y - 2][top_left.x - 2]
+
+    return res
 
 
 def run():
     max_power = 0
     max_power_coords = Coordinate(0, 0)
+    max_square_size = 0
     grid = create_square(Coordinate(1,1), MAX_SQUARE_SIZE)
-    for square_size in range(280, MAX_SQUARE_SIZE):
-        print(square_size)
+    summed_area_table = [[0 for i in range(300)]
+       for j in range(300)]
+    pre_process(grid, summed_area_table)
+    for square_size in range(1, 300):
         for x in range(1, MAX_SQUARE_SIZE - square_size + 1):
             for y in range(1, MAX_SQUARE_SIZE - square_size + 1):
-                max_power, max_power_coords = find_subgrid_power(grid, max_power, max_power_coords, square_size, x, y)
-    print(max_power_coords)
-    print(max_power)
+                top_left = Coordinate(x, y)
+                bottom_right = Coordinate(x + square_size - 1, y + square_size - 1)
+                total_power = sum_query(summed_area_table, top_left, bottom_right)
+                if total_power > max_power:
+                    max_power = total_power
+                    max_power_coords = top_left
+                    max_square_size = square_size
 
-
-def find_subgrid_power(grid, max_power, max_power_coords, square_size, x, y):
-    coordinates = Coordinate(x, y)
-    subgrid = [grid[y + i - 1][x - 1:x + square_size - 1] for i in range(square_size)]
-    # subgrid = create_square(Coordinate(x, y), square_size)
-    total_power = calculate_grid_sum(subgrid)
-    if total_power > max_power:
-        max_power = total_power
-        max_power_coords = coordinates
-    return max_power, max_power_coords
-
-
-# grid = create_square(Coordinate(21, 61))
-# [print(row) for row in grid]
-# print(calculate_grid_sum(grid))
+    print(f'Top left coordinate: {max_power_coords}')
+    print(f'Max power: {max_power}')
+    print(f'Square size: {max_square_size}')
 
 run()
